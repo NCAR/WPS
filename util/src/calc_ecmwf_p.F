@@ -1,7 +1,7 @@
 module coefficients
 
    integer :: n_levels
-   real, allocatable, dimension(:) :: a, b
+   real, allocatable, dimension(:) :: a, b, lvl
 
    contains
 
@@ -40,24 +40,25 @@ module coefficients
          n_levels = n_levels + 1
          read(21,*,iostat=istatus) nlvl
       end do
-      
+
       rewind(21)
 
       n_levels = n_levels - 1
 
+      allocate(lvl(0:n_levels))
       allocate(a(0:n_levels))
       allocate(b(0:n_levels))
 
       write(6,*) ' '
       write(6,*) 'Coefficients for each level:',n_levels
       do i=0,n_levels
-         read(21,*,iostat=istatus) nlvl, a(i), b(i)
-         write(6,'(i5,5x,f12.6,2x,f12.10)') nlvl, a(i), b(i)
+        read(21,*,iostat=istatus) lvl(i), a(i), b(i)
+        write(6,'(f3.0,5x,f12.6,2x,f12.10)') lvl(i), a(i), b(i)
       end do
       write(6,*) ' '
 
       close(21)
-      
+
    end subroutine read_coeffs
 
 
@@ -364,17 +365,17 @@ program calc_ecmwf_p
                   a_full = 0.5 * (a(i-1) + a(i))   ! A and B are dimensioned (0:n_levels)
                   b_full = 0.5 * (b(i-1) + b(i))
 
-                  p_data%xlvl = real(i)
+                  p_data%xlvl = lvl(i)
                   p_data%slab = a_full + psfc * b_full
 
                   if (allocated(tt) .and. allocated(qv)) then
-                     rh_data%xlvl = real(i)
+                     rh_data%xlvl = lvl(i)
                      call calc_rh(tt(:,:,i), qv(:,:,i), p_data%slab, rh_data%slab, rh_data%nx, rh_data%ny)
                      call write_next_met_field(rh_data, istatus) 
                      
                      if (allocated(hgtsfc)) then
                         ! CvH_DvD: put hgt_3ddata into hgt_data object
-                        hgt_data%xlvl = real(i)
+                        hgt_data%xlvl = lvl(i)
                         hgt_data%slab = hgt_3ddata(:,:,i)
                         call write_next_met_field(hgt_data, istatus)
                      else
